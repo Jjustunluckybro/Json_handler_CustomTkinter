@@ -1,7 +1,14 @@
 import customtkinter
+
+from src.utils.exceptions import PresetException
+from src.utils.models import FillerSettingsModel, MonoSettingsModel, MonoDatesModel, DatesModel, MonoPresetModel
 from src.window.StatesSwitcher import State, StateSwitcher
+from src.window.CustomWidgets import CustomInputBox, CustomSegmentBox, CustomLabelCombobox, CustomOutputWindow
 from src.handlers.settings_handlers import FillerSettingsHandler, WindowSettingsHandler
-from src.window.CustomWidgets import CustomInputBox, CustomSegmentBox, CustomLabelCombobox
+from src.handlers.settings_handlers import FillerSettingsHandler
+from src.handlers.filler_handlers import plus_days_from_now
+
+FILLER_SETTINGS_PATH = "data\settings\\filler_settings.json"
 
 
 class FillerState(State):
@@ -10,7 +17,9 @@ class FillerState(State):
     1. responsible for input\result
     2. Main activity like start, copy, delete
     3. Settings
+    and feedback window
     """
+
     def __init__(self, master: customtkinter.CTkBaseClass):
         super(FillerState, self).__init__(master)
         self.settings_handler = FillerSettingsHandler("data/settings/filler_settings.json")
@@ -26,7 +35,7 @@ class FillerState(State):
         # Init filler settings states
         self.sub_filler_settings_state_switcher = StateSwitcher(
             states={
-                "Моно продукт": SubFillerMonoState(self.filler_settings_frame),
+                "Моно продукт": SubFillerMonoState(self.filler_settings_frame, self),
                 "Дабл": SubFillerDoubleState(self.filler_settings_frame)
             },
             start_state="Моно продукт"
@@ -44,6 +53,7 @@ class FillerState(State):
     def remove_state(self):
         self.input_windows_frame.grid_remove()
         self.filler_settings_frame.grid_remove()
+        self.feedback_window.grid_remove()
 
         all_action_widgets = self.action_frame.grid_slaves()
         for widget in all_action_widgets:
@@ -57,16 +67,20 @@ class FillerState(State):
         self.action_frame = customtkinter.CTkFrame(self.master)
         self.filler_settings_frame = customtkinter.CTkFrame(self.master)
 
+        self.feedback_window = customtkinter.CTkTextbox(master=self.master,
+                                                        width=1,
+                                                        height=40,
+                                                        )
+
     def set_frames(self) -> None:
         """Set main frame in app window"""
         self.input_windows_frame.grid(row=1, column=0, sticky="NEWS", padx=5, pady=5)
         self.action_frame.grid(row=2, column=0, sticky="NEWS", padx=5, pady=5)
-        self.filler_settings_frame.grid(row=3, column=0, sticky="NEWS", padx=5, pady=5)
+        self.filler_settings_frame.grid(row=4, column=0, sticky="NEWS", padx=5, pady=5)
 
         # Set row\column configurate to AppWindow
         self.master.rowconfigure(1, weight=1)
-        # self.master.rowconfigure(2, weight=1)
-        self.master.rowconfigure(3, weight=1)
+        self.master.rowconfigure(4, weight=1)
 
         # Set row\column configurate to input_window_frame
         self.input_windows_frame.rowconfigure(1, weight=1)
@@ -78,6 +92,9 @@ class FillerState(State):
         self.action_frame.rowconfigure(0, weight=1)
         for i in range(0, 8):
             self.action_frame.columnconfigure(i, weight=1)
+
+        # Feedback window
+        self.feedback_window.grid(row=3, column=0, sticky="EW", padx=5, pady=5)
 
     def create_input_windows_frame_widgets(self) -> None:
         """Create widgets which will be in input_window_frame"""
@@ -191,6 +208,11 @@ class FillerState(State):
 
     def clear_r_text_box_callback(self):
         ...
+
+    # -----------  ----------- #
+    def set_feedback(self, text: str) -> None:
+        self.feedback_window.delete(0.0, customtkinter.END)
+        self.feedback_window.insert(customtkinter.INSERT, text)
 
 
 class SageState(State):
@@ -319,6 +341,7 @@ class TableState(State):
 
 
 class SubSettingsGeneralState(State):
+    """App general settings"""
     root_frame: customtkinter.CTkFrame
     window_resolution_input_box: CustomInputBox
 
@@ -380,14 +403,80 @@ class SubSettingsGeneralState(State):
 
 
 class SubSettingsFillerState(State):
+    """Settings for filler mono/double"""
 
     def __init__(self, master: customtkinter.CTkBaseClass):
         super(SubSettingsFillerState, self).__init__(master)
+        self.root_frame = customtkinter.CTkFrame(master=self.master)
+        self.settings_handler = FillerSettingsHandler(FILLER_SETTINGS_PATH)
 
-    def set_state(self): ...
+    def set_state(self):
+        self.create_all_widgets()
+        self.set_all_widgets()
 
-    def remove_state(self): ...
+    def remove_state(self):
+        all_widgets = self.root_frame.grid_slaves()
+        for i in all_widgets:
+            i.destroy()
+        self.root_frame.grid_remove()
 
+    def create_all_widgets(self):
+        # Labels
+        self.mono_labal = customtkinter.CTkLabel(master=self.root_frame, text="Настройки 'Моно'")
+
+        # Input Boxes
+        self.date_1 = CustomInputBox(master=self.root_frame, label_text="DATE_1:")
+        self.date_2 = CustomInputBox(master=self.root_frame, label_text="DATE_2:")
+        self.date_3 = CustomInputBox(master=self.root_frame, label_text="DATE_3:")
+        self.std = CustomInputBox(master=self.root_frame, label_text="   STD:   ")
+
+        # Buttons
+        self.save_mono_button = customtkinter.CTkButton(master=self.root_frame,
+                                                        text="Сохранить настройки",
+                                                        command=self.callback_save_settings,
+                                                        border_width=1)
+
+    def set_all_widgets(self):
+        self.root_frame.grid(row=1, column=0, sticky="NEWS", padx=20, pady=10)
+
+        # Mono
+        # Labels
+        self.mono_labal.grid(row=0, column=0)
+
+        # Input boxes
+        self.date_1.grid(row=1, column=0)
+        self.date_2.grid(row=2, column=0)
+        self.date_3.grid(row=3, column=0)
+        self.std.grid(row=4, column=0)
+        self.fill_input_boxes_from_settings()
+
+        # Buttons
+        self.save_mono_button.grid(row=5, column=0)
+
+    def callback_save_settings(self):
+        settings_from_ui = self.get_settings_from_ui()
+        self.settings_handler.set_new_data_settings(**settings_from_ui.dict())
+
+    def fill_input_boxes_from_settings(self) -> None:
+        settings = self.get_mono_date_settings()
+        self.date_1.set_new_text(str(settings.date_1))
+        self.date_2.set_new_text(str(settings.date_2))
+        self.date_3.set_new_text(str(settings.date_3))
+        self.std.set_new_text(str(settings.std))
+
+    def get_mono_date_settings(self) -> MonoDatesModel:
+        return self.settings_handler.get_current_settings().mono.dates
+
+    def get_settings_from_ui(self) -> MonoDatesModel:
+        try:
+            return MonoDatesModel(
+                date_1=int(self.date_1.get_text()),
+                date_2=int(self.date_2.get_text()),
+                date_3=int(self.date_3.get_text()),
+                std=int(self.std.get_text()),
+            )
+        except TypeError as err:
+            raise err
 
 class SettingsState(State):
     mod_button_var: customtkinter.StringVar
@@ -440,9 +529,11 @@ class SettingsState(State):
 
 class SubFillerMonoState(State):
 
-    def __init__(self, master: customtkinter.CTkFrame):
+    def __init__(self, master: customtkinter.CTkFrame, master_state: FillerState):
         super(SubFillerMonoState, self).__init__(master)
         self.root_frame = customtkinter.CTkFrame(master=master)
+        self.settings_handler = FillerSettingsHandler(FILLER_SETTINGS_PATH)
+        self.master_state = master_state
 
     def set_state(self) -> None:
         self.root_frame.grid(row=1, column=0, sticky="NEWS")
@@ -481,11 +572,13 @@ class SubFillerMonoState(State):
                                                           combobox_values=["Call", "Chat"],
                                                           )
 
-        # self.settings_preset_box = CustomLabelCombobox(master=self.root_frame,
-        #                                                label_text="Пресеты настроек:",
-        #                                                combobox_default_value="",
-        #                                                combobox_values=[""],
-        #                                                )
+        presets_names = self.settings_handler.get_all_presets_names()
+        default_value = presets_names[0] if len(presets_names) > 0 else ""
+        self.settings_preset_box = CustomLabelCombobox(master=self.root_frame,
+                                                       label_text="Пресеты настроек:",
+                                                       combobox_default_value=default_value,
+                                                       combobox_values=presets_names,
+                                                       )
 
         # InputBoxes
         self.date1_input_box = CustomInputBox(master=self.root_frame,
@@ -500,19 +593,19 @@ class SubFillerMonoState(State):
                                                  label_text="Next STD:")
 
         # Buttons
-        # self.save_settings_preset_btn = customtkinter.CTkButton(master=self.root_frame,
-        #                                                         text="Сохранить текущий пресет настроек",
-        #                                                         command=self.callback_save_settings_preset,
-        #                                                         border_width=1)
-        # self.load_settings_preset_btn = customtkinter.CTkButton(master=self.root_frame,
-        #                                                         text="Загрузить выбранный пресет настроек",
-        #                                                         command=self.callback_load_settings_preset,
-        #                                                         border_width=1)
-        # self.del_settings_preset_btn = customtkinter.CTkButton(master=self.root_frame,
-        #                                                        text="Удалить выбранный пресет настроек",
-        #                                                        command=self.callback_del_settings_preset,
-        #                                                        border_width=1,
-        #                                                        fg_color="purple")
+        self.save_settings_preset_btn = customtkinter.CTkButton(master=self.root_frame,
+                                                                text="Сохранить текущий пресет настроек",
+                                                                command=self.callback_save_settings_preset,
+                                                                border_width=1)
+        self.load_settings_preset_btn = customtkinter.CTkButton(master=self.root_frame,
+                                                                text="Загрузить выбранный пресет настроек",
+                                                                command=self.callback_load_settings_preset,
+                                                                border_width=1)
+        self.del_settings_preset_btn = customtkinter.CTkButton(master=self.root_frame,
+                                                               text="Удалить выбранный пресет настроек",
+                                                               command=self.callback_del_settings_preset,
+                                                               border_width=1,
+                                                               fg_color="purple")
         self.calculate_dates = customtkinter.CTkButton(master=self.root_frame,
                                                        text=" Рассчитать даты ",
                                                        command=self.callback_calculate_datas,
@@ -532,35 +625,107 @@ class SubFillerMonoState(State):
         self.product_type_box.grid(row=3, column=0, sticky="WE")
         self.communication_type_box.grid(row=4, column=0, sticky="WE")
 
-        # self.settings_preset_box.grid(row=0, column=3)
+        self.settings_preset_box.grid(row=0, column=1)
 
         # InputBoxes
-        self.date1_input_box.grid(column=1, row=0, padx=1, pady=1, sticky="WE")
-        self.date2_input_box.grid(column=1, row=1, padx=1, pady=1, sticky="WE")
-        self.date3_input_box.grid(column=1, row=2, padx=1, pady=1, sticky="WE")
-        self.std_input_box.grid(column=1, row=3, padx=1, pady=1, sticky="WE")
-        self.next_std_input_box.grid(column=1, row=4, padx=1, pady=1, sticky="WE")
+        self.date1_input_box.grid(column=2, row=0, padx=1, pady=1, sticky="WE")
+        self.date2_input_box.grid(column=2, row=1, padx=1, pady=1, sticky="WE")
+        self.date3_input_box.grid(column=2, row=2, padx=1, pady=1, sticky="WE")
+        self.std_input_box.grid(column=2, row=3, padx=1, pady=1, sticky="WE")
+        self.next_std_input_box.grid(column=2, row=4, padx=1, pady=1, sticky="WE")
 
         # Buttons
-        self.calculate_dates.grid(column=1, row=6)
+        self.calculate_dates.grid(column=3, row=1)
 
-        # self.save_settings_preset_btn.grid(column=3, row=1, sticky="EW")
-        # self.load_settings_preset_btn.grid(column=3, row=2, sticky="EW")
-        # self.del_settings_preset_btn.grid(column=3, row=3, sticky="EW")
+        self.save_settings_preset_btn.grid(column=1, row=1, sticky="EW")
+        self.load_settings_preset_btn.grid(column=1, row=2, sticky="EW")
+        self.del_settings_preset_btn.grid(column=1, row=3, sticky="EW")
 
         # CheckBoxes
-        self.format_date_chkbox.grid(column=2, row=0)
+        self.format_date_chkbox.grid(column=3, row=0)
 
-    def get_settings(self): ...
+    # ----------- Settings ----------- #
+    def get_settings(self) -> MonoSettingsModel:
+        """Get settings from settings handler"""
+        return self.settings_handler.get_current_settings().mono
 
-    # ----------- Callbacks ----------- # TODO:
-    def callback_save_settings_preset(self): ...
+    def reed_date_settings(self) -> MonoDatesModel:
+        """Reed settings from UI"""
+        # return MonoDatesModel(
+        #     date_1=int(self.date1_input_box.get_text()),
+        #     date_2=int(self.date2_input_box.get_text()),
+        #     date_3=int(self.date3_input_box.get_text()),
+        #     std=int(self.std_input_box.get_text())
+        # )
+        ...
 
-    def callback_load_settings_preset(self): ...
+    def write_date_settings(self,
+                            date_1: str = "",
+                            date_2: str = "",
+                            date_3: str = "",
+                            std: str = "",
+                            next_std: str = ""
+                            ) -> None:
+        """Set to UI date"""
+        self.date1_input_box.set_new_text(date_1)
+        self.date2_input_box.set_new_text(date_2)
+        self.date3_input_box.set_new_text(date_3)
+        self.std_input_box.set_new_text(std)
+        self.next_std_input_box.set_new_text(next_std)
 
-    def callback_del_settings_preset(self): ...
+    # ----------- Callbacks ----------- # TODO Exceptions
+    def callback_save_settings_preset(self):
+        """Save preset into settings"""
+        new_preset_name = self.settings_preset_box.get_text()
+        new_preset = MonoPresetModel(
+            name=new_preset_name,
+            communication_type=self.communication_type_box.get_text(),
+            product_type=self.product_type_box.get_text(),
+            account_number=self.account_number_box.get_text(),
+            contact_id=self.contact_id_box.get_text(),
+            contract_number=self.contract_number_box.get_text()
+        )
+        try:
+            self.settings_handler.add_new_preset(new_preset)
+            self.settings_preset_box.add_new_value(new_preset_name)
+            self.master_state.set_feedback(f"Save preset with name: '{new_preset_name}'")
+        except PresetException as err:
+            self.master_state.set_feedback(str(err))
 
-    def callback_calculate_datas(self): ...
+    def callback_load_settings_preset(self):
+        """Set preset by name from inputBox"""
+        preset_name = self.settings_preset_box.get_text()
+        try:
+            preset = self.settings_handler.get_preset_by_name(preset_name)
+            self.contact_id_box.set_new_text(preset.contact_id)
+            self.account_number_box.set_new_text(preset.account_number)
+            self.contract_number_box.set_new_text(preset.contract_number)
+            self.product_type_box.set_new_text(preset.product_type)
+            self.communication_type_box.set_new_text(preset.communication_type)
+            self.master_state.set_feedback(f"Load preset with name: '{preset_name}'")
+        except PresetException as err:
+            self.master_state.set_feedback(str(err))
+
+    def callback_del_settings_preset(self):
+        """Delete preset from settings"""
+        preset_name_to_del = self.settings_preset_box.get_text()
+        try:
+            self.settings_handler.delete_preset_by_name(preset_name_to_del)
+            self.settings_preset_box.del_value(preset_name_to_del)
+            self.master_state.set_feedback(f"Delete preset with name: '{preset_name_to_del}'")
+        except PresetException as err:
+            self.master_state.set_feedback(str(err))
+
+    def callback_calculate_datas(self):
+        """Calculates dates based on settings"""
+        result = plus_days_from_now(self.get_settings().dates)
+        self.write_date_settings(
+            date_1=result.date_1,
+            date_2=result.date_2,
+            date_3=result.date_3,
+            std=result.std,
+            next_std=result.next_std,
+        )
 
 
 class SubFillerDoubleState(State):

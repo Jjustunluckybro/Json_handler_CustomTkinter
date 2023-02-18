@@ -4,6 +4,18 @@ import customtkinter
 from customtkinter import CTkFrame
 
 
+class CustomOutputWindow(CTkFrame):
+
+    def __init__(self,
+                 *args,
+                 width: int = 100000,
+                 height: int = 40,
+                 **kwargs):
+        super(CustomOutputWindow, self).__init__(*args, width=width, height=height, **kwargs)
+        self.output_box = customtkinter.CTkTextbox(master=self, height=height, width=width, state="disabled")
+        self.output_box.grid(column=0, row=0)
+
+
 class CustomInputBox(CTkFrame):
     w_label: customtkinter.CTkLabel
     text_box_var: customtkinter.StringVar
@@ -40,14 +52,17 @@ class CustomInputBox(CTkFrame):
                                                    pady=5
                                                    )
 
-        # Пример раскараски определенного текста!!!
-        # self.w_text_box.tag_config('tag_red_text', foreground='red')
-        # self.w_text_box.insert(customtkinter.END, 'red text', 'tag_red_text')
-
     def set_sub_widgets(self):
         self.w_label.grid(column=0, row=0)
         self.w_text_box.grid(column=1, row=0)
         self.w_text_box.insert(customtkinter.INSERT, self.text_box_text)
+
+    def get_text(self) -> str:
+        return self.w_text_box.get(0.0, "end")
+
+    def set_new_text(self, text: str) -> None:
+        self.w_text_box.delete(0.0, customtkinter.END)
+        self.w_text_box.insert(customtkinter.INSERT, text)
 
 
 class CustomSegmentBox(CTkFrame):
@@ -61,7 +76,7 @@ class CustomSegmentBox(CTkFrame):
                  default_value: str,
                  mod_values: list,
                  label_text: str,
-                 command,  # TODO: Need to type hint function
+                 command: callable,
                  **kwargs):
         super(CustomSegmentBox, self).__init__(*args, width=width, height=height, **kwargs)
         self.label_text = label_text
@@ -123,9 +138,25 @@ class CustomLabelCombobox(CTkFrame):
                                                     justify="center")
 
     def set_sub_widgets(self) -> None:
-
         self.w_label.grid(column=0, row=0)
         self.w_combobox.grid(column=1, row=0)
+
+    def get_text(self) -> str:
+        return self.w_combobox.get()
+
+    def set_new_text(self, text: str) -> None:
+        self.w_combobox.set(value=text)
+
+    def add_new_value(self, text: str) -> None:
+        values = self.combobox_values
+        values.append(text)
+        self.w_combobox.configure(values=values)
+
+    def del_value(self, text: str) -> None:
+        values = self.combobox_values
+        values.remove(text)
+        self.w_combobox.configure(values=values)
+        self.set_new_text("")
 
 
 class CustomSettingsBox(CTkFrame):
@@ -139,7 +170,6 @@ class CustomSettingsBox(CTkFrame):
         super(CustomSettingsBox, self).__init__(*args, width=width, height=height, **kwargs)
 
     def create_all_widgets(self):
-
         self.settings_preset_box = CustomLabelCombobox(master=self,
                                                        label_text="Пресеты настроек:",
                                                        combobox_default_value="",
@@ -160,7 +190,6 @@ class CustomSettingsBox(CTkFrame):
                                                                fg_color="purple")
 
     def set_all_widgets(self):
-
         self.settings_preset_box.grid(row=0, column=0)
 
         self.save_settings_preset_btn.grid(column=0, row=1, sticky="EW")
@@ -176,6 +205,6 @@ class CustomSettingsBox(CTkFrame):
     def callback_delete_preset(self):
         raise NotImplementedError
 
-"""
-Можно взять один json/ один хендлер настроек и просто по ключу mono/double их фильтровать
-"""
+
+# self.w_text_box.tag_config('tag_red_text', foreground='red')
+# self.w_text_box.insert(customtkinter.END, 'red text', 'tag_red_text')

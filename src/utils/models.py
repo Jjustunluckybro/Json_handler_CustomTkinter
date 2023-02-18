@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import date
 
 
 # ---------- Models for filler settings ---------- #
@@ -48,3 +49,12 @@ class WindowSettingsModel(BaseModel):
     window_geometry: str
     minsize_geometry: list[int, int]
     themes: Themes
+
+
+# ---------- Dates model ---------- #
+class DatesModel(BaseModel):
+    date_1: str
+    date_2: str
+    date_3: str
+    std: str
+    next_std: str

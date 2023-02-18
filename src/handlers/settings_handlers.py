@@ -92,7 +92,9 @@ class FillerSettingsHandler(SettingsHandler):
             self.logger.error(f"No such file or directory: {self._path}")
             raise err
 
-    def set_new_data_settings(self, is_mono_settings: bool = True, **kwargs) -> None:
+    def set_new_data_settings(self,
+                              is_mono_settings: bool = True,
+                              **kwargs) -> None:
         new_settings = self._data.mono.dict() if is_mono_settings else self._data.double.dict()
 
         for key in kwargs:
@@ -122,20 +124,20 @@ class FillerSettingsHandler(SettingsHandler):
             preset_names = [prst.name for prst in self._data.mono.presets]
             if new_preset.name not in preset_names:
                 self._data.mono.presets.append(new_preset)
-                self.logger.debug(f"Add new preset {new_preset} to 'mono'")
+                self.logger.debug(f"Add new preset '{new_preset}' to 'mono'")
             else:
-                self.logger.error(f"Can't add new preset to 'mono': Preset with name: {new_preset.name} already exist")
-                raise PresetException(f"Preset with name: {new_preset.name} already exist")
+                self.logger.error(f"Can't add new preset to 'mono': Preset with name: '{new_preset.name}' already exist")
+                raise PresetException(f"Preset with name: '{new_preset.name}' already exist")
         # For double
         else:
             preset_names = [prst.name for prst in self._data.double.presets]
             if new_preset.name not in preset_names:
                 self._data.double.presets.append(new_preset)
-                self.logger.debug(f"Add new preset {new_preset} to 'double'")
+                self.logger.debug(f"Add new preset '{new_preset}' to 'double'")
             else:
                 self.logger.error(
-                    f"Can't add new preset to 'double': Preset with name: {new_preset.name} already exist")
-                raise PresetException(f"Preset with name: {new_preset.name} already exist")
+                    f"Can't add new preset to 'double': Preset with name: '{new_preset.name}' already exist")
+                raise PresetException(f"Preset with name: '{new_preset.name}' already exist")
 
         self._write_to_json()
 
@@ -158,12 +160,14 @@ class FillerSettingsHandler(SettingsHandler):
                 if self._data.mono.presets[i].name == preset_name:
                     self._data.mono.presets.pop(i)
                     is_delete_any_preset = True
+                    break
         # For double
         else:
             for i in range(0, len(self._data.double.presets)):
                 if self._data.double.presets[i].name == preset_name:
                     self._data.double.presets.pop(i)
                     is_delete_any_preset = True
+                    break
 
         # Throw exception if no preset to delete
         if is_delete_any_preset:
@@ -171,12 +175,27 @@ class FillerSettingsHandler(SettingsHandler):
             self.logger.debug(f"Delete new preset with name: {preset_name}")
         else:
             self.logger.error(f"Can't delete preset. No preset with name: {preset_name}")
-            raise PresetException(f"No preset with name: {preset_name}")
+            raise PresetException(f"No preset with name: '{preset_name}'")
+
+    def get_all_presets_names(self, is_for_mono: bool = True) -> list:
+        if is_for_mono:
+            return [prst.name for prst in self._data.mono.presets]
+        else:
+            return [prst.name for prst in self._data.double.presets]
 
     def get_current_settings(self) -> FillerSettingsModel:
-        answer = self._data.copy()
-        return answer
+        return self._data.copy()
 
+    def get_preset_by_name(self, name, is_for_mono: bool = True) -> MonoPresetModel | DoublePresetModel:
+        if is_for_mono:
+            for preset in self._data.mono.presets:
+                if name == preset.name:
+                    return preset
+        else:
+            for preset in self._data.double.presets:
+                if name == preset.name:
+                    return preset
+        raise PresetException(f"No preset with name: '{name}'")
 
 if __name__ == '__main__':
     ...
