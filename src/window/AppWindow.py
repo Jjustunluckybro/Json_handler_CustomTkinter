@@ -11,6 +11,7 @@ class AppWindow(customtkinter.CTk):
     def __init__(self):
         super(AppWindow, self).__init__()
         self.window_settings_handler = WindowSettingsHandler("data/settings/window_settings.json")
+        self.current_settings = self.window_settings_handler.get_current_settings()
         self.logger = logging.getLogger("app.main_window")
 
         self.state_switcher = StateSwitcher(
@@ -30,20 +31,19 @@ class AppWindow(customtkinter.CTk):
         self.logger.debug(f"AppWindow was init")
 
     def create_window(self):
-        self.title(self.window_settings_handler.current_settings.TITLE)
-        self.geometry(self.window_settings_handler.current_settings.WINDOW_GEOMETRY)
+        self.title(self.current_settings.title)
+        self.geometry(self.current_settings.window_geometry)
         self.minsize(
-            self.window_settings_handler.current_settings.MINSIZE_GEOMETRY[0],
-            self.window_settings_handler.current_settings.MINSIZE_GEOMETRY[1]
+            self.current_settings.minsize_geometry[0],
+            self.current_settings.minsize_geometry[1]
         )
         self.set_appearance_mode()
-        self.set_color_theme()
+        customtkinter.set_default_color_theme(self.current_settings.themes.color_theme)
 
         self.logger.debug(f"""AppWindow create window with settings:
-    title: {self.window_settings_handler.current_settings.TITLE},
-    geometry: {self.window_settings_handler.current_settings.WINDOW_GEOMETRY},
-    minsize: {self.window_settings_handler.current_settings.MINSIZE_GEOMETRY[0],
-              self.window_settings_handler.current_settings.MINSIZE_GEOMETRY[1]}""")
+    title: {self.current_settings.title},
+    geometry: {self.current_settings.window_geometry},
+    minsize: {self.current_settings.minsize_geometry}""")
 
     def create_root_widgets(self):
         self.mod_button_var = customtkinter.StringVar(value="Наполнитель JSON'a")
@@ -64,23 +64,13 @@ class AppWindow(customtkinter.CTk):
     def set_root_widgets(self):
         self.mod_button.grid(row=0, column=0, padx=20, pady=10, sticky="NEW", columnspan=1000)
 
-    def set_appearance_mode(self, is_set_current_from_settings: bool = True) -> None:
-        """
-        :param is_set_current_from_settings: if True -> set from settings,
-         else switch to opposite between "dark"\"light"
-        :return: None
-        """
-
-        if not is_set_current_from_settings:
-            if self.window_settings_handler.current_settings.APPEARANCE_MOD == "dark":
-                self.window_settings_handler.set_new_settings(APPEARANCE_MOD="light")
-            else:
-                self.window_settings_handler.set_new_settings(APPEARANCE_MOD="dark")
-
-        customtkinter.set_appearance_mode(self.window_settings_handler.current_settings.APPEARANCE_MOD)
-        self.logger.debug(f"Set appearance mod: '{self.window_settings_handler.current_settings.APPEARANCE_MOD}'")
+    def set_appearance_mode(self) -> None:
+        """Set appearance mod from settings"""
+        customtkinter.set_appearance_mode(self.current_settings.themes.appearance_mode)
+        self.logger.debug(f"Set appearance mod: '{self.current_settings.themes.appearance_mode}'")
 
     def switch_appearance_mod(self, mod: str) -> None:
+        """Switch current appearance mod to opposite"""
         if mod == "Темная тема":
             customtkinter.set_appearance_mode("dark")
             self.logger.debug("Set appearance mod: 'dark'")
@@ -91,9 +81,3 @@ class AppWindow(customtkinter.CTk):
             self.window_settings_handler.set_new_settings(APPEARANCE_MOD='light')
         else:
             raise Exception  # TODO Custom exception
-
-    def set_color_theme(self, is_set_current_from_settings: bool = True) -> None:
-        # TODO: Need switcher or mby not?
-        customtkinter.set_default_color_theme(self.window_settings_handler.current_settings.COLOR_THEME)
-
-        self.logger.debug(f"Set color theme: {self.window_settings_handler.current_settings.COLOR_THEME}")

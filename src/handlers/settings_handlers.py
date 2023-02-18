@@ -1,209 +1,181 @@
 import json
 import logging
-from typing import NamedTuple
 
+from pydantic import BaseModel
 
-class WindowSettings(NamedTuple):
-    TITLE: str
-    WINDOW_GEOMETRY: str
-    MINSIZE_GEOMETRY: tuple[int, int]
-    APPEARANCE_MOD: str
-    COLOR_THEME: str
-
-
-class FillerSettings(NamedTuple):
-    PRESETS: list
-    DATES: dict
-
-
-class SageSettings(NamedTuple):
-    ...
-
-
-class TableSettings(NamedTuple):
-    ...
+from src.utils.models import WindowSettingsModel, FillerSettingsModel, MonoPresetModel, DoublePresetModel
+from src.utils.exceptions import PresetException
 
 
 class SettingsHandler:
-    _settings_dict: dict  # Settings JSON file as dict
+    _data: BaseModel
 
     def __init__(self, path: str):
+        """
+        :param path: path to JSON file
+        """
         self._path = path
-        self._reed_settings()
-        self._reed_settings_to_named_tuple()
 
-    def _reed_settings(self):
-        """
-        Reed JSON file with settings and return it as dict
-        Should be saved in var "settings_dict"
-        """
+    def get_current_settings(self):
+        answer = self._data.copy()
+        return answer
+
+    def _reed_json(self):
+        """reed JSON file"""
         raise NotImplementedError
 
-    def _reed_settings_to_named_tuple(self):
-        """Write settings to self "current settings" named tuple"""
+    def _write_to_json(self):
+        """Write to JSON file"""
         raise NotImplementedError
-
-    def _write_settings_to_json(self):
-        """Write self current settings to json file"""
-        raise NotImplementedError
-
-    def set_new_settings(self, **kwargs):
-        """Set new settings by NamedTuple names"""
-        raise NotImplementedError
-
-
-# class SettingsHandler2:
-#
-#     def set_new_settings(self, **kwargs):
-#         ...
-#
-#     def get_current_settings(self):
-#         ...
 
 
 class WindowSettingsHandler(SettingsHandler):
-    current_settings: WindowSettings
+    _data: WindowSettingsModel
 
     def __init__(self, path: str):
-        self.logger = logging.getLogger("app.settings_handler.window")
         super(WindowSettingsHandler, self).__init__(path)
-        self.logger.debug("WindowSettingsHandler was init")
+        self.logger = logging.getLogger('app.settings_handler.window_settings_handler')
+        self._reed_json()
 
-    def _reed_settings(self):
-        with open(self._path, "r", encoding="utf-8") as file:
-            self.settings_dict = json.load(file)
-            self.logger.debug(f"Settings was reeded: {self.settings_dict}")
-
-    def update_settings(self):
-        self._reed_settings()
-        self._reed_settings_to_named_tuple()
-
-    def _reed_settings_to_named_tuple(self):
+    def _reed_json(self):
         try:
-            minsize_list = self.settings_dict["minsize_geometry"].split("x")
-            minsize = (int(minsize_list[0]), int(minsize_list[1]))
-            self.logger.debug(f"Convert minsize geometry as x = {minsize[0]}, y = {minsize[1]}")
-
-            self.current_settings = WindowSettings(
-                WINDOW_GEOMETRY=self.settings_dict["window_geometry"],
-                TITLE=self.settings_dict["title"],
-                MINSIZE_GEOMETRY=minsize,
-                APPEARANCE_MOD=self.settings_dict["themes"]["appearance_mode"],
-                COLOR_THEME=self.settings_dict["themes"]["color_theme"]
-            )
-
-            self.logger.debug(f"""Settings was saved:
-    Geometry: {self.current_settings.WINDOW_GEOMETRY}, type: {type(self.current_settings.WINDOW_GEOMETRY)}
-    TITLE: {self.current_settings.TITLE}, type: {type(self.current_settings.TITLE)}
-    MINSIZE_GEOMETRY: {self.current_settings.MINSIZE_GEOMETRY}, type: {type(
-                self.current_settings.MINSIZE_GEOMETRY)}
-    APPEARANCE_MOD: {self.current_settings.APPEARANCE_MOD}, type: {type(self.current_settings.APPEARANCE_MOD)}
-    COLOR_THEME: {self.current_settings.COLOR_THEME}, type: {type(self.current_settings.COLOR_THEME)}""")
-
-        except KeyError as err:
-            self.logger.error(f"Can't save settings, not found key. Error: {err}")
+            self._data = WindowSettingsModel.parse_file(self._path)
+            self.logger.debug(f"Succsess reed file from directory: '{self._path}' and save as {self._data}")
+        except FileNotFoundError as err:
+            self.logger.error(f"No such file or directory: {self._path}")
             raise err
 
-    def _write_settings_to_json(self):
-        with open(self._path, "w", encoding="utf-8") as file:
-            json.dump(self.settings_dict, file, ensure_ascii=False)
-            self.logger.debug(f"Write {self.settings_dict} to settings")
-
-    def _set_new_settings_dict_from_settings_namedtuple(self):
-        minsize = f"{self.current_settings.MINSIZE_GEOMETRY[0]}x{self.current_settings.MINSIZE_GEOMETRY[1]}"
-
+    def _write_to_json(self):
         try:
-            self.settings_dict["title"] = self.current_settings.TITLE
-            self.settings_dict["window_geometry"] = self.current_settings.WINDOW_GEOMETRY
-            self.settings_dict["minsize_geometry"] = minsize
-            self.settings_dict["themes"]["appearance_mode"] = self.current_settings.APPEARANCE_MOD
-            self.settings_dict["themes"]["color_theme"] = self.current_settings.COLOR_THEME
-        except KeyError as err:
-            self.logger.error(f"Can not find key: {err}")
+            with open(self._path, "w", encoding="utf-8") as file:
+                json.dump(self._data.dict(), file, ensure_ascii=False, indent=2)
+            self.logger.debug(f"Succsess write file: {self._data} to directory: {self._path}")
+        except FileNotFoundError as err:
+            self.logger.error(f"No such file or directory: {self._path}")
             raise err
 
     def set_new_settings(self, **kwargs):
-        self.current_settings = WindowSettings(
-            WINDOW_GEOMETRY=kwargs[
-                "WINDOW_GEOMETRY"] if "WINDOW_GEOMETRY" in kwargs else self.current_settings.WINDOW_GEOMETRY,
-            TITLE=kwargs["TITLE"] if "TITLE" in kwargs else self.current_settings.TITLE,
-            MINSIZE_GEOMETRY=kwargs[
-                "MINSIZE_GEOMETRY"] if "MINSIZE_GEOMETRY" in kwargs else self.current_settings.MINSIZE_GEOMETRY,
-            APPEARANCE_MOD=kwargs[
-                "APPEARANCE_MOD"] if "APPEARANCE_MOD" in kwargs else self.current_settings.APPEARANCE_MOD,
-            COLOR_THEME=kwargs["COLOR_THEME"] if "COLOR_THEME" in kwargs else self.current_settings.COLOR_THEME,
-        )
+        new_settings = self._data.dict()
+        for key in kwargs:
+            if key in self._data.dict():
+                new_settings[key] = kwargs[key]
+        self._data = WindowSettingsModel(**new_settings)
+        self._write_to_json()
 
-        self._set_new_settings_dict_from_settings_namedtuple()
-        self._write_settings_to_json()
-        self.logger.debug(f"Save and write new window settings: {self.current_settings}")
+    def get_current_settings(self) -> WindowSettingsModel:
+        answer = self._data.copy()
+        return answer
 
 
 class FillerSettingsHandler(SettingsHandler):
+    _data: FillerSettingsModel
 
-    def __init__(self, path: str, mode: str):
-        """
-        :param path: path to JSON file
-        :param mode: "mono" or "double"
-        """
+    def __init__(self, path: str):
         super(FillerSettingsHandler, self).__init__(path)
-        self._mode = mode
-        self.logger = logging.getLogger("app.settings_handler.filler")
-        self.logger.debug(f"FillerSettingsHandler was init with {self._mode} mode")
+        self.logger = logging.getLogger("app.settings_handler.filler_settings_handler")
+        self._reed_json()
 
-    def _reed_settings(self):
-        with open(self._path, "r", encoding="utf-8") as f:
-            try:
-                self._settings_dict = json.load(f)
-                self.logger.debug(f"Read filler_settings json: {self._settings_dict}")
-                return self._settings_dict
-            except Exception as err:
-                self.logger.error(f"Can'not reed filler_settings JSON, path: {self._path}")
-                raise err
+    def _reed_json(self) -> None:
+        try:
+            self._data = FillerSettingsModel.parse_file(self._path)
+            self.logger.debug(f"Succsess reed file from directory '{self._path}' and save as {self._data} ")
+        except FileNotFoundError as err:
+            self.logger.error(f"No such file or directory: {self._path}")
+            raise err
 
-    def _reed_settings_to_named_tuple(self):
-        ...
+    def _write_to_json(self) -> None:
+        try:
+            with open(self._path, "w", encoding="utf-8") as file:
+                json.dump(self._data.dict(), file, ensure_ascii=False, indent=2)
+            self.logger.debug(f"Succsess write file: {self._data} to directory: {self._path}")
+        except FileNotFoundError as err:
+            self.logger.error(f"No such file or directory: {self._path}")
+            raise err
 
-    def _write_settings_to_json(self):
-        with open(self._path, "w", encoding="utf-8") as f:
-            json.dump(self._settings_dict, f, ensure_ascii=False)
+    def set_new_data_settings(self, is_mono_settings: bool = True, **kwargs) -> None:
+        new_settings = self._data.mono.dict() if is_mono_settings else self._data.double.dict()
 
-    def set_new_settings(self, **kwargs):
-        ...
+        for key in kwargs:
+            if key in new_settings["dates"]:
+                new_settings["dates"][key] = kwargs[key]
+            else:
+                raise KeyError(f"No key with name: {key}")
 
-    def _set_settings_to_mono(self, **kwargs) -> dict:
-        ...
+        if is_mono_settings:
+            self._data.mono = self._data.mono.parse_obj(new_settings)
+        else:
+            self._data.double = self._data.double.parse_obj(new_settings)
 
-    def _set_settings_to_double(self, **kwargs) -> dict:
-        ...
+        self._write_to_json()
 
+    def add_new_preset(self, new_preset: MonoPresetModel | DoublePresetModel) -> None:
+        """
+        Add new preset to preset list.
+        If preset with name already exits, then throw PresetException
 
-class SageSettingsHandler(SettingsHandler):
+        :param new_preset: new_preset: If type MonoPresetModel then write it to "mono" settings section |
+            If type DoublePresetModel then write it to "double" settings section
+        :return: None
+        """
+        # For mono
+        if type(new_preset) is MonoPresetModel:
+            preset_names = [prst.name for prst in self._data.mono.presets]
+            if new_preset.name not in preset_names:
+                self._data.mono.presets.append(new_preset)
+                self.logger.debug(f"Add new preset {new_preset} to 'mono'")
+            else:
+                self.logger.error(f"Can't add new preset to 'mono': Preset with name: {new_preset.name} already exist")
+                raise PresetException(f"Preset with name: {new_preset.name} already exist")
+        # For double
+        else:
+            preset_names = [prst.name for prst in self._data.double.presets]
+            if new_preset.name not in preset_names:
+                self._data.double.presets.append(new_preset)
+                self.logger.debug(f"Add new preset {new_preset} to 'double'")
+            else:
+                self.logger.error(
+                    f"Can't add new preset to 'double': Preset with name: {new_preset.name} already exist")
+                raise PresetException(f"Preset with name: {new_preset.name} already exist")
 
-    def __init__(self, path: str):
-        super(SageSettingsHandler, self).__init__(path)
+        self._write_to_json()
 
-    def _reed_settings(self): ...
+    def delete_preset_by_name(self, preset_name: str, is_from_mono: bool = True) -> None:
+        """
+        Delete preset by name from presets list
+        If no preset with this name -> throw PresetException
 
-    def _reed_settings_to_named_tuple(self): ...
+        :param preset_name: Preset name to delete
+        :param is_from_mono: True - try delete preset from "mono" settings,
+            else try delete from "double" settings
+        :return: None
+        """
 
-    def _write_settings_to_json(self): ...
+        is_delete_any_preset = False
 
-    def set_new_settings(self, **kwargs): ...
+        # For mono
+        if is_from_mono:
+            for i in range(0, len(self._data.mono.presets)):
+                if self._data.mono.presets[i].name == preset_name:
+                    self._data.mono.presets.pop(i)
+                    is_delete_any_preset = True
+        # For double
+        else:
+            for i in range(0, len(self._data.double.presets)):
+                if self._data.double.presets[i].name == preset_name:
+                    self._data.double.presets.pop(i)
+                    is_delete_any_preset = True
 
+        # Throw exception if no preset to delete
+        if is_delete_any_preset:
+            self._write_to_json()
+            self.logger.debug(f"Delete new preset with name: {preset_name}")
+        else:
+            self.logger.error(f"Can't delete preset. No preset with name: {preset_name}")
+            raise PresetException(f"No preset with name: {preset_name}")
 
-class TableSettingsHandler(SettingsHandler):
-
-    def __init__(self, path: str):
-        super(TableSettingsHandler, self).__init__(path)
-
-    def _reed_settings(self): ...
-
-    def _reed_settings_to_named_tuple(self): ...
-
-    def _write_settings_to_json(self): ...
-
-    def set_new_settings(self, **kwargs): ...
+    def get_current_settings(self) -> FillerSettingsModel:
+        answer = self._data.copy()
+        return answer
 
 
 if __name__ == '__main__':

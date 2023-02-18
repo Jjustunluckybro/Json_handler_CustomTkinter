@@ -339,24 +339,23 @@ class SubSettingsGeneralState(State):
         self.root_frame.grid_remove()
 
     def create_all_widgets(self):
-        settings = self.settings_handler.current_settings
+        settings = self.settings_handler.get_current_settings()
 
         self.window_resolution_input_box = CustomInputBox(
             master=self.root_frame,
             label_text="Разрешение окна\nпри старте приложения:",
-            text_box_text=settings.WINDOW_GEOMETRY,
+            text_box_text=settings.window_geometry,
             text_box_width=100
         )
 
         self.window_min_resolution_input_box = CustomInputBox(
             master=self.root_frame,
             label_text="       Минимальное       \n      разрешение окна:       ",  # TODO: Kludge with spaces!
-            text_box_text=self.settings_handler.settings_dict["minsize_geometry"],
+            text_box_text=str(settings.minsize_geometry),
             text_box_width=100
         )
 
-        default_value = 'Темная тема' if self.settings_handler.current_settings.APPEARANCE_MOD == 'dark' \
-            else 'Светлая тема'
+        default_value = 'Темная тема' if settings.themes.appearance_mode == 'dark' else 'Светлая тема'
         self.apperance_mod_switcher = CustomSegmentBox(
             master=self.root_frame,
             default_value=default_value,

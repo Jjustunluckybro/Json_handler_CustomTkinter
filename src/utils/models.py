@@ -19,5 +19,32 @@ class MonoDatesModel(BaseModel):
 
 
 class MonoSettingsModel(BaseModel):
-    presets: [MonoPresetModel]
+    presets: list[MonoPresetModel] = []
     dates: MonoDatesModel
+
+
+class DoublePresetModel(BaseModel):
+    name: str
+
+
+class DoubleSettingsModel(BaseModel):
+    presets: list[DoublePresetModel]
+    dates: dict
+
+
+class FillerSettingsModel(BaseModel):
+    mono: MonoSettingsModel
+    double: DoubleSettingsModel
+
+
+# ---------- Models for window settings ---------- #
+class Themes(BaseModel):
+    appearance_mode: str
+    color_theme: str
+
+
+class WindowSettingsModel(BaseModel):
+    title: str
+    window_geometry: str
+    minsize_geometry: list[int, int]
+    themes: Themes
