@@ -31,7 +31,6 @@ class StateSwitcher:
         self.logger.debug(f"State switcher was init with states: {self._states} | Current state: {self._current_state}")
 
     def _set_start_state(self, start_state: str) -> None:
-
         self.is_state_in_states(start_state)
         state_to_set = self._states[start_state]
         state_to_set.set_state()
@@ -57,3 +56,9 @@ class StateSwitcher:
             raise Exception  # TODO: Custom exception
         self.logger.debug(f"Found state {state} in available states")
 
+    def get_current_state_name(self) -> str:
+        return self._current_state
+
+    def get_current_state(self):
+        """Return current state obj"""
+        return self._states[self._current_state]

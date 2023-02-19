@@ -184,6 +184,7 @@ class FillerSettingsHandler(SettingsHandler):
             return [prst.name for prst in self._data.double.presets]
 
     def get_current_settings(self) -> FillerSettingsModel:
+        self._reed_json()
         return self._data.copy()
 
     def get_preset_by_name(self, name, is_for_mono: bool = True) -> MonoPresetModel | DoublePresetModel:

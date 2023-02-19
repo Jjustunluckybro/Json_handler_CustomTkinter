@@ -1,12 +1,17 @@
-import customtkinter
+import logging
 
-from src.utils.exceptions import PresetException
-from src.utils.models import FillerSettingsModel, MonoSettingsModel, MonoDatesModel, DatesModel, MonoPresetModel
+import customtkinter
+import pydantic
+
+from src.utils.exceptions import PresetException, ConvertStrToDictException, UnexpectedErrorMessage
+from src.utils.models import FillerSettingsModel, MonoSettingsModel, MonoDatesModel, DatesModel, MonoPresetModel, \
+    MonoSettingsFromUIModel, DecoderErrorLocation
+from src.utils.utils import parse_error_message
 from src.window.StatesSwitcher import State, StateSwitcher
 from src.window.CustomWidgets import CustomInputBox, CustomSegmentBox, CustomLabelCombobox, CustomOutputWindow
 from src.handlers.settings_handlers import FillerSettingsHandler, WindowSettingsHandler
 from src.handlers.settings_handlers import FillerSettingsHandler
-from src.handlers.filler_handlers import plus_days_from_now
+from src.handlers.filler_handlers import plus_days_from_now, filler
 
 FILLER_SETTINGS_PATH = "data\settings\\filler_settings.json"
 
@@ -23,6 +28,9 @@ class FillerState(State):
     def __init__(self, master: customtkinter.CTkBaseClass):
         super(FillerState, self).__init__(master)
         self.settings_handler = FillerSettingsHandler("data/settings/filler_settings.json")
+
+        # Get logger
+        self.logger = logging.getLogger("app.states.filler_state")
 
         # Create and set state main frame
         self.create_frames()
@@ -195,7 +203,33 @@ class FillerState(State):
 
     # ----------- Buttons callbacks  ----------- #
     def start_btn_callback(self):
-        ...
+        to_fill = self.textbox_l.get(0.0, customtkinter.END)
+        from_fill = self.textbox_m.get(0.0, customtkinter.END)
+
+        try:
+            if self.sub_filler_settings_state_switcher.get_current_state_name() == "Моно продукт":
+                state = self.sub_filler_settings_state_switcher.get_current_state()
+                settings: SubFillerMonoState = state.reed_date_settings()
+
+                result = filler(to_fill=to_fill, from_fill=from_fill, settings=settings)
+
+                self.textbox_r.delete(0.0, customtkinter.END)
+                self.textbox_r.insert(0.0, customtkinter.END)
+            else:
+                self.set_feedback("Для даблов расчет пока не реализован, вернись на настройки 'Моно продукта'")
+                return None
+
+            self.textbox_r.delete(0.0, customtkinter.END)
+            self.textbox_r.insert(0.0, result)
+        except ConvertStrToDictException as err:
+            try:
+                err_location = parse_error_message(str(err))
+                self.set_error_feedback(err_location)
+            except UnexpectedErrorMessage as err:
+                self.logger.error(str(err))
+
+
+
 
     def copy_result_btn_callback(self):
         ...
@@ -213,6 +247,20 @@ class FillerState(State):
     def set_feedback(self, text: str) -> None:
         self.feedback_window.delete(0.0, customtkinter.END)
         self.feedback_window.insert(customtkinter.INSERT, text)
+
+    def set_error_feedback(self, err_location: DecoderErrorLocation) -> None:
+        msg_feedback = f"Неверный синтаксис JSON'а {err_location.location}," \
+                       f" Строка: {err_location.line}; Символ: {err_location.column}"
+        self.set_feedback(msg_feedback)
+
+        if err_location.location == "from_fill":
+            str_with_error = self.textbox_l.get(0.0, customtkinter.END)
+            print(str_with_error)
+            self.textbox_l.tag_config('tag_red_text', foreground='red')
+        else:
+            str_with_error = self.textbox_m.get(0.0, customtkinter.END)
+            self.textbox_m.tag_config('tag_red_text', foreground='red')
+
 
 
 class SageState(State):
@@ -478,6 +526,7 @@ class SubSettingsFillerState(State):
         except TypeError as err:
             raise err
 
+
 class SettingsState(State):
     mod_button_var: customtkinter.StringVar
     mod_button: customtkinter.CTkSegmentedButton
@@ -649,15 +698,26 @@ class SubFillerMonoState(State):
         """Get settings from settings handler"""
         return self.settings_handler.get_current_settings().mono
 
-    def reed_date_settings(self) -> MonoDatesModel:
+    def reed_date_settings(self) -> MonoSettingsFromUIModel:
         """Reed settings from UI"""
-        # return MonoDatesModel(
-        #     date_1=int(self.date1_input_box.get_text()),
-        #     date_2=int(self.date2_input_box.get_text()),
-        #     date_3=int(self.date3_input_box.get_text()),
-        #     std=int(self.std_input_box.get_text())
-        # )
-        ...
+        x = MonoSettingsFromUIModel(
+            dates=DatesModel(
+                date_1=self.date1_input_box.get_text().strip(),
+                date_2=self.date2_input_box.get_text().strip(),
+                date_3=self.date3_input_box.get_text().strip(),
+                std=self.std_input_box.get_text().strip(),
+                next_std=self.next_std_input_box.get_text().strip(),
+            ),
+            contact_id=self.contact_id_box.get_text().strip(),
+            account_number=self.account_number_box.get_text().strip(),
+            contract_number=self.contract_number_box.get_text().strip(),
+            product_type=self.product_type_box.get_text().strip(),
+            communication_type=self.communication_type_box.get_text().strip(),
+            is_need_convert_dt=bool(self.format_date_chkbox_var.get())
+        )
+
+        print(x.is_need_convert_dt)
+        return x
 
     def write_date_settings(self,
                             date_1: str = "",
@@ -673,7 +733,7 @@ class SubFillerMonoState(State):
         self.std_input_box.set_new_text(std)
         self.next_std_input_box.set_new_text(next_std)
 
-    # ----------- Callbacks ----------- # TODO Exceptions
+    # ----------- Callbacks ----------- #
     def callback_save_settings_preset(self):
         """Save preset into settings"""
         new_preset_name = self.settings_preset_box.get_text()

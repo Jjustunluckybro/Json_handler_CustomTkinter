@@ -58,3 +58,26 @@ class DatesModel(BaseModel):
     date_3: str
     std: str
     next_std: str
+
+
+class MonoSettingsFromUIModel(BaseModel):
+    """Settings for filler from mono UI"""
+    dates: DatesModel
+    contact_id: str
+    account_number: str
+    contract_number: str
+    product_type: str
+    communication_type: str
+    is_need_convert_dt: bool
+
+
+class DoubleSettingsFromUIModel(BaseModel):
+    dates: DatesModel
+
+
+# ---------- Error ---------- #
+class DecoderErrorLocation(BaseModel):
+    line: int
+    column: int
+    char: int
+    location: str

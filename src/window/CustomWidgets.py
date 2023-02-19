@@ -205,6 +205,3 @@ class CustomSettingsBox(CTkFrame):
     def callback_delete_preset(self):
         raise NotImplementedError
 
-
-# self.w_text_box.tag_config('tag_red_text', foreground='red')
-# self.w_text_box.insert(customtkinter.END, 'red text', 'tag_red_text')
