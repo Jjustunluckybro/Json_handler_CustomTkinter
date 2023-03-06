@@ -224,17 +224,14 @@ class FillerState(State):
         except ConvertStrToDictException as err:
             try:
                 err_location = parse_error_message(str(err))
-                self.set_error_feedback(err_location)
+                self.set_error_feedback(err_location=err_location)
             except UnexpectedErrorMessage as err:
                 self.logger.error(str(err))
 
-
-
-
-    def copy_result_btn_callback(self):
+    def clear_l_text_box_callback(self):
         ...
 
-    def clear_l_text_box_callback(self):
+    def copy_result_btn_callback(self):
         ...
 
     def clear_m_text_box_callback(self):
@@ -243,7 +240,7 @@ class FillerState(State):
     def clear_r_text_box_callback(self):
         ...
 
-    # -----------  ----------- #
+    # ----------- Feedback ----------- #
     def set_feedback(self, text: str) -> None:
         self.feedback_window.delete(0.0, customtkinter.END)
         self.feedback_window.insert(customtkinter.INSERT, text)
@@ -253,14 +250,22 @@ class FillerState(State):
                        f" Строка: {err_location.line}; Символ: {err_location.column}"
         self.set_feedback(msg_feedback)
 
-        if err_location.location == "from_fill":
+        if err_location.location == "1. 'В который переносим ключи'":
             str_with_error = self.textbox_l.get(0.0, customtkinter.END)
-            print(str_with_error)
             self.textbox_l.tag_config('tag_red_text', foreground='red')
+
+            self.textbox_l.delete(0.0, customtkinter.END)
+            self.textbox_l.insert(customtkinter.INSERT, str_with_error[:err_location.char])
+            self.textbox_l.insert(customtkinter.INSERT, str_with_error[err_location.char], 'tag_red_text')
+            self.textbox_l.insert(customtkinter.INSERT, str_with_error[err_location.char+1:])
         else:
             str_with_error = self.textbox_m.get(0.0, customtkinter.END)
             self.textbox_m.tag_config('tag_red_text', foreground='red')
 
+            self.textbox_m.delete(0.0, customtkinter.END)
+            self.textbox_m.insert(customtkinter.INSERT, str_with_error[:err_location.char])
+            self.textbox_m.insert(customtkinter.INSERT, str_with_error[err_location.char], 'tag_red_text')
+            self.textbox_m.insert(customtkinter.INSERT, str_with_error[err_location.char + 1:])
 
 
 class SageState(State):
