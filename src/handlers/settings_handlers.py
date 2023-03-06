@@ -198,5 +198,6 @@ class FillerSettingsHandler(SettingsHandler):
                     return preset
         raise PresetException(f"No preset with name: '{name}'")
 
+
 if __name__ == '__main__':
     ...

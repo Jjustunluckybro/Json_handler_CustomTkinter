@@ -205,28 +205,32 @@ class FillerState(State):
     def start_btn_callback(self):
         to_fill = self.textbox_l.get(0.0, customtkinter.END)
         from_fill = self.textbox_m.get(0.0, customtkinter.END)
+        self.logger.info(f"Start fill with:"
+                         f"To fill: {to_fill}"
+                         f"From fill: {from_fill}")
 
         try:
             if self.sub_filler_settings_state_switcher.get_current_state_name() == "Моно продукт":
+                self.logger.info("filler mod - Mono")
                 state = self.sub_filler_settings_state_switcher.get_current_state()
                 settings: SubFillerMonoState = state.reed_date_settings()
 
                 result = filler(to_fill=to_fill, from_fill=from_fill, settings=settings)
-
-                self.textbox_r.delete(0.0, customtkinter.END)
-                self.textbox_r.insert(0.0, customtkinter.END)
             else:
+                self.logger.info("filler mod - Double")
                 self.set_feedback("Для даблов расчет пока не реализован, вернись на настройки 'Моно продукта'")
                 return None
 
             self.textbox_r.delete(0.0, customtkinter.END)
             self.textbox_r.insert(0.0, result)
+            self.logger.info(f"Success fill, result: {result}")
         except ConvertStrToDictException as err:
             try:
                 err_location = parse_error_message(str(err))
                 self.set_error_feedback(err_location=err_location)
+                self.logger.info(f"Input syntax error: {err_location}")
             except UnexpectedErrorMessage as err:
-                self.logger.error(str(err))
+                self.logger.error(f"Filler error: {str(err)}")
 
     def clear_l_text_box_callback(self):
         ...
@@ -256,16 +260,22 @@ class FillerState(State):
 
             self.textbox_l.delete(0.0, customtkinter.END)
             self.textbox_l.insert(customtkinter.INSERT, str_with_error[:err_location.char])
-            self.textbox_l.insert(customtkinter.INSERT, str_with_error[err_location.char], 'tag_red_text')
-            self.textbox_l.insert(customtkinter.INSERT, str_with_error[err_location.char+1:])
+            try:
+                self.textbox_l.insert(customtkinter.INSERT, str_with_error[err_location.char], 'tag_red_text')
+                self.textbox_l.insert(customtkinter.INSERT, str_with_error[err_location.char+1:])
+            except IndexError:
+                ...
         else:
             str_with_error = self.textbox_m.get(0.0, customtkinter.END)
             self.textbox_m.tag_config('tag_red_text', foreground='red')
 
             self.textbox_m.delete(0.0, customtkinter.END)
             self.textbox_m.insert(customtkinter.INSERT, str_with_error[:err_location.char])
-            self.textbox_m.insert(customtkinter.INSERT, str_with_error[err_location.char], 'tag_red_text')
-            self.textbox_m.insert(customtkinter.INSERT, str_with_error[err_location.char + 1:])
+            try:
+                self.textbox_m.insert(customtkinter.INSERT, str_with_error[err_location.char], 'tag_red_text')
+                self.textbox_m.insert(customtkinter.INSERT, str_with_error[err_location.char + 1:])
+            except IndexError:
+                ...
 
 
 class SageState(State):
@@ -575,7 +585,8 @@ class SettingsState(State):
             variable=self.mod_button_var
         )
 
-    def set_all_widgets(self): ...
+    def set_all_widgets(self):
+        ...
 
     def test_command(self, string):
         print(string)
@@ -604,7 +615,6 @@ class SubFillerMonoState(State):
                                                   combobox_default_value="",
                                                   combobox_values=[""]
                                                   )
-        # print(self.master.winfo_visual())
         self.account_number_box = CustomLabelCombobox(master=self.root_frame,
                                                       label_text="     ACCOUNT_NUMBER:    ",
                                                       combobox_default_value="",
@@ -705,7 +715,7 @@ class SubFillerMonoState(State):
 
     def reed_date_settings(self) -> MonoSettingsFromUIModel:
         """Reed settings from UI"""
-        x = MonoSettingsFromUIModel(
+        return MonoSettingsFromUIModel(
             dates=DatesModel(
                 date_1=self.date1_input_box.get_text().strip(),
                 date_2=self.date2_input_box.get_text().strip(),
@@ -720,9 +730,6 @@ class SubFillerMonoState(State):
             communication_type=self.communication_type_box.get_text().strip(),
             is_need_convert_dt=bool(self.format_date_chkbox_var.get())
         )
-
-        print(x.is_need_convert_dt)
-        return x
 
     def write_date_settings(self,
                             date_1: str = "",
