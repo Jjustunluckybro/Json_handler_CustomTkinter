@@ -1,0 +1,40 @@
+{
+  "mono": {
+    "presets": [
+      {
+        "name": "test_preset",
+        "contact_id": "123456",
+        "account_number": "123456",
+        "contract_number": "123456",
+        "product_type": "Common",
+        "communication_type": "Call"
+      },
+      {
+        "name": "test_preset_3",
+        "contact_id": "000000",
+        "account_number": "111111",
+        "contract_number": "2222222",
+        "product_type": "Common",
+        "communication_type": "Call"
+      },
+      {
+        "name": "Мой пресет",
+        "contact_id": "99999999999",
+        "account_number": "123456789",
+        "contract_number": "00000000",
+        "product_type": "Kbk",
+        "communication_type": "Chat"
+      }
+    ],
+    "dates": {
+      "date_1": 2,
+      "date_2": 5,
+      "date_3": 10,
+      "std": -1
+    }
+  },
+  "double": {
+    "presets": [],
+    "dates": {}
+  }
+}

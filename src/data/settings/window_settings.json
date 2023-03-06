@@ -1,0 +1,12 @@
+{
+  "title": "JSON Handler",
+  "window_geometry": "1000x800",
+  "minsize_geometry": [
+    100,
+    100
+  ],
+  "themes": {
+    "appearance_mode": "dark",
+    "color_theme": "blue"
+  }
+}
