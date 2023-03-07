@@ -12,6 +12,7 @@ from src.window.CustomWidgets import CustomInputBox, CustomSegmentBox, CustomLab
 from src.handlers.settings_handlers import FillerSettingsHandler, WindowSettingsHandler
 from src.handlers.settings_handlers import FillerSettingsHandler
 from src.handlers.filler_handlers import plus_days_from_now, filler
+from src.handlers.sage_handler import convert_sage_str_to_dict_with_correcting_types
 
 FILLER_SETTINGS_PATH = "data\settings\\filler_settings.json"
 
@@ -378,7 +379,10 @@ class SageState(State):
 
     # ----------- Buttons callbacks  ----------- #
     def start_btn_callback(self):
-        ...
+
+        sage_string = self.textbox_l.get(0.0, customtkinter.END)
+        example_dict = self.textbox_m.get(0.0, customtkinter.END)
+        convert_sage_str_to_dict_with_correcting_types(sage_str="", example_dict={})
 
     def copy_result_btn_callback(self):
         ...
