@@ -178,3 +178,12 @@ API
 Training
 Blog
 About
+
+# Custom
+/src/data/test.xlsx
+/src/data/service_json.json
+/src/data/sage_test.txt
+/src/data/logs/logs.log
+/src/data/logs/logs.log.1
+/src/data/root_json.json
+/src/data/double_root_json.json

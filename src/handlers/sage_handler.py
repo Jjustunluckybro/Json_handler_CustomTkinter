@@ -1,24 +1,31 @@
-import json
+from src.utils.utils import correct_dict_to_export, fix_dict_values_type, get_root_json_as_dict, convert_string_to_dict
+from src.utils.exceptions import ConvertStrToDictException
 
-from filler_handlers import fill_dict_from_another_dict
 
-
-def convert_sage_str_to_dict_with_correcting_types(sage_str: str, example_dict: dict) -> dict:
+def convert_sage_str_to_dict_with_correcting_types(sage_str: str, example_dict: dict | str) -> str:
     """
 
     :param sage_str:
     :param example_dict:
     :return:
     """
-    result: dict = {}
 
     result = convert_sage_vars_string_to_dict(sage_str)
+
+    if isinstance(example_dict, str) and example_dict.strip() == "":
+        example_dict = get_root_json_as_dict()
+    elif isinstance(example_dict, str):
+        try:
+            example_dict = convert_string_to_dict(example_dict)
+        except ConvertStrToDictException as err:
+            raise err
+
     try:
         result = fix_dict_values_type(dictionary=result, type_example=example_dict)
     except ValueError as err:
         raise err  # TODO: handle err
 
-    return result
+    return correct_dict_to_export(result)
 
 
 def convert_sage_vars_string_to_dict(string: str):
@@ -39,46 +46,3 @@ def convert_sage_vars_string_to_dict(string: str):
         result[i[0].strip()] = i[1].strip()
 
     return result
-
-
-def fix_dict_values_type(dictionary: dict, type_example: dict) -> dict:
-    result = {}
-
-    for k, v in dictionary.items():
-        if k in type_example.keys():
-
-            if v == "null":
-                result[k] = None
-                continue
-
-            # Matching types
-            if issubclass(type(type_example[k]), bool):
-                result[k] = bool(v)
-
-            elif issubclass(type(type_example[k]), int | float):
-                try:
-                    result[k] = int(v)
-                except ValueError:
-                    result[k] = float(v)
-
-            elif issubclass(type(type_example[k]), str):
-                result[k] = str(v)
-
-            elif issubclass(type(type_example[k]), dict):
-                # TODO: Need to convert string_to_convert to dict if it was nested json
-                result[k] = v
-
-            elif issubclass(type(type_example[k]), list):
-                # TODO: Mapping empty list
-                value_list = v.split(',')
-                result[k] = [i.strip() for i in value_list]
-
-            else:
-                pass
-
-    return result
-
-
-if __name__ == '__main__':
-    string_to_convert = """"""
-    convert_sage_vars_string_to_dict(string=string_to_convert)

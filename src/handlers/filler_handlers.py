@@ -6,10 +6,8 @@ from datetime import datetime as dt
 from dateutil.relativedelta import relativedelta
 from src.utils.models import DatesModel, MonoDatesModel, MonoSettingsFromUIModel, DoubleSettingsFromUIModel
 from src.utils.exceptions import ConvertStrToDictException
+from src.utils.utils import correct_dict_to_export, get_root_json_as_dict
 
-ROOT_JSON_PATH = "data/root_json.json"
-DOUBLE_ROOT_JSON_PATH = "data/double_root_json.json"
-SERVICE_JSON_PATH = "data/service_json.json"
 logger = logging.getLogger("app.filler_handlers")
 
 
@@ -137,16 +135,6 @@ def apply_settings(dict_to_valid: dict, settings: MonoSettingsFromUIModel | Doub
     return result_dict
 
 
-def get_root_json_as_dict(is_for_mono: bool = True) -> dict:
-    path = ROOT_JSON_PATH if is_for_mono else DOUBLE_ROOT_JSON_PATH
-    with open(path, "r", encoding="utf-8") as file:
-        root_json = json.load(file)
-    logger.debug(f"Get root JSON:"
-                 f"path: {path}"
-                 f"root JSON: {root_json}")
-    return root_json
-
-
 def prepare_strings_to_filler(to_fill: str, from_fill: str, is_mono: bool) -> tuple[dict, dict]:
     if from_fill == "\n" or from_fill == "":
         from_fill = get_root_json_as_dict(is_for_mono=is_mono)
@@ -165,17 +153,6 @@ def prepare_strings_to_filler(to_fill: str, from_fill: str, is_mono: bool) -> tu
                  f"to_fill: {to_fill} |----| type: {type(to_fill)}"
                  f"from_fill: {from_fill} |----| type: {type(from_fill)}")
     return to_fill, from_fill
-
-
-def correct_dict_to_export(correcting_dict: dict) -> str:
-    correcting_value = str(correcting_dict)
-    correcting_value = correcting_value.replace("'", '"')
-    correcting_value = correcting_value.replace("True", 'true')
-    correcting_value = correcting_value.replace("False", 'false')
-    correcting_value = correcting_value.replace("None", 'null')
-    correcting_value = correcting_value.replace(',', ',\n')
-
-    return correcting_value
 
 
 def is_date_time_value(value) -> bool:
@@ -208,7 +185,3 @@ def is_date_value(value) -> bool:
 
 def convert_dt_string_to_date(date_time: str) -> str:
     return str(dt.strptime(date_time, '%Y-%m-%dT%H:%M:%S.%f').date())
-
-
-if __name__ == '__main__':
-    ...

@@ -1,20 +1,21 @@
 import logging
-
 import customtkinter
-import pydantic
+import pyperclip
 
 from src.utils.exceptions import PresetException, ConvertStrToDictException, UnexpectedErrorMessage
-from src.utils.models import FillerSettingsModel, MonoSettingsModel, MonoDatesModel, DatesModel, MonoPresetModel, \
+from src.utils.models import MonoSettingsModel, MonoDatesModel, DatesModel, MonoPresetModel, \
     MonoSettingsFromUIModel, DecoderErrorLocation
 from src.utils.utils import parse_error_message
 from src.window.StatesSwitcher import State, StateSwitcher
-from src.window.CustomWidgets import CustomInputBox, CustomSegmentBox, CustomLabelCombobox, CustomOutputWindow
-from src.handlers.settings_handlers import FillerSettingsHandler, WindowSettingsHandler
+from src.window.CustomWidgets import CustomInputBox, CustomSegmentBox, CustomLabelCombobox
+from src.handlers.settings_handlers import WindowSettingsHandler
 from src.handlers.settings_handlers import FillerSettingsHandler
 from src.handlers.filler_handlers import plus_days_from_now, filler
 from src.handlers.sage_handler import convert_sage_str_to_dict_with_correcting_types
+from src.handlers.tables_handler import make_json_from_table
 
-FILLER_SETTINGS_PATH = "data\settings\\filler_settings.json"
+FILLER_SETTINGS_PATH = "data/settings/filler_settings.json"
+ROOT_JSON_PATH = "data/root_json.json"
 
 
 class FillerState(State):
@@ -28,7 +29,7 @@ class FillerState(State):
 
     def __init__(self, master: customtkinter.CTkBaseClass):
         super(FillerState, self).__init__(master)
-        self.settings_handler = FillerSettingsHandler("data/settings/filler_settings.json")
+        self.settings_handler = FillerSettingsHandler(FILLER_SETTINGS_PATH)
 
         # Get logger
         self.logger = logging.getLogger("app.states.filler_state")
@@ -78,7 +79,7 @@ class FillerState(State):
 
         self.feedback_window = customtkinter.CTkTextbox(master=self.master,
                                                         width=1,
-                                                        height=40,
+                                                        height=40
                                                         )
 
     def set_frames(self) -> None:
@@ -162,21 +163,21 @@ class FillerState(State):
         )
         self.clear_l_text_box_btn = customtkinter.CTkButton(
             master=self.action_frame,
-            text="Отчистить 1",
+            text="Очистить 1",
             command=self.clear_l_text_box_callback,
             border_width=1,
             fg_color="purple"
         )
         self.clear_m_text_box_btn = customtkinter.CTkButton(
             master=self.action_frame,
-            text="Отчистить 2",
+            text="Очистить 2",
             command=self.clear_m_text_box_callback,
             border_width=1,
             fg_color="purple"
         )
         self.clear_r_text_box_btn = customtkinter.CTkButton(
             master=self.action_frame,
-            text="Отчистить результат",
+            text="Очистить результат",
             command=self.clear_r_text_box_callback,
             border_width=1,
             fg_color="purple"
@@ -225,6 +226,7 @@ class FillerState(State):
             self.textbox_r.delete(0.0, customtkinter.END)
             self.textbox_r.insert(0.0, result)
             self.logger.info(f"Success fill, result: {result}")
+            self.set_feedback("JSON Успешно преобразован")
         except ConvertStrToDictException as err:
             try:
                 err_location = parse_error_message(str(err))
@@ -234,16 +236,17 @@ class FillerState(State):
                 self.logger.error(f"Filler error: {str(err)}")
 
     def clear_l_text_box_callback(self):
-        ...
+        self.textbox_l.delete(0.0, customtkinter.END)
 
     def copy_result_btn_callback(self):
-        ...
+        text = self.textbox_r.get(0.0, customtkinter.END)
+        pyperclip.copy(text)
 
     def clear_m_text_box_callback(self):
-        ...
+        self.textbox_m.delete(0.0, customtkinter.END)
 
     def clear_r_text_box_callback(self):
-        ...
+        self.textbox_r.delete(0.0, customtkinter.END)
 
     # ----------- Feedback ----------- #
     def set_feedback(self, text: str) -> None:
@@ -285,18 +288,31 @@ class SageState(State):
         super(SageState, self).__init__(master)
         self.root_frame = customtkinter.CTkFrame(master=master)
         self.action_frame = customtkinter.CTkFrame(master=master)
+        self.feedback_window = customtkinter.CTkTextbox(master=self.master,
+                                                        width=1,
+                                                        height=40
+                                                        )
         self.create_widgets()
 
     def set_state(self):
+        self.set_frames()
+        self.set_widgets()
+
+    def set_frames(self):
         self.root_frame.grid(row=1, column=0, sticky="NEWS")
         self.action_frame.grid(row=2, column=0, sticky="NSWE")
-        self.set_widgets()
+
+        self.feedback_window.grid(row=3, column=0, sticky="EW", padx=5, pady=5)
+        # Set row\column configurate to AppWindow
+        self.master.rowconfigure(1, weight=1)
+        self.master.columnconfigure(0, weight=1)
 
     def remove_state(self):
         for widget in self.root_frame.slaves():
             widget.grid_remove()
         self.action_frame.grid_remove()
         self.root_frame.grid_remove()
+        self.feedback_window.grid_remove()
 
     def create_widgets(self):
         # Labels
@@ -322,6 +338,10 @@ class SageState(State):
                                                   height=300,
                                                   border_width=1
                                                   )
+        self.feedbackbox = customtkinter.CTkTextbox(master=self.root_frame,
+                                                    width=1,
+                                                    height=40,
+                                                    )
 
         # Buttons
         self.start_btn = customtkinter.CTkButton(
@@ -339,21 +359,21 @@ class SageState(State):
         )
         self.clear_l_text_box_btn = customtkinter.CTkButton(
             master=self.action_frame,
-            text="Отчистить 1",
+            text="Очистить 1",
             command=self.clear_l_text_box_callback,
             border_width=1,
             fg_color="purple"
         )
         self.clear_m_text_box_btn = customtkinter.CTkButton(
             master=self.action_frame,
-            text="Отчистить 2",
+            text="Очистить 2",
             command=self.clear_m_text_box_callback,
             border_width=1,
             fg_color="purple"
         )
         self.clear_r_text_box_btn = customtkinter.CTkButton(
             master=self.action_frame,
-            text="Отчистить результат",
+            text="Очистить результат",
             command=self.clear_r_text_box_callback,
             border_width=1,
             fg_color="purple"
@@ -377,24 +397,44 @@ class SageState(State):
         self.clear_m_text_box_btn.grid(row=0, column=6, sticky="NSWE")
         self.clear_r_text_box_btn.grid(row=0, column=7, sticky="NSWE")
 
+        self.root_frame.columnconfigure(0, weight=1)
+        self.root_frame.columnconfigure(1, weight=1)
+        self.root_frame.columnconfigure(2, weight=1)
+
+        self.root_frame.rowconfigure(1, weight=1)
+
     # ----------- Buttons callbacks  ----------- #
     def start_btn_callback(self):
 
-        sage_string = self.textbox_l.get(0.0, customtkinter.END)
-        example_dict = self.textbox_m.get(0.0, customtkinter.END)
-        convert_sage_str_to_dict_with_correcting_types(sage_str="", example_dict={})
+        try:
+            sage_string = self.textbox_l.get(0.0, customtkinter.END)
+            example_dict = self.textbox_m.get(0.0, customtkinter.END)
+            result = convert_sage_str_to_dict_with_correcting_types(sage_str=sage_string, example_dict=example_dict)
+        except ConvertStrToDictException as err:
+            self.set_feedback("Неверный JSON")
+            raise err
+
+        self.textbox_r.delete(0.0, customtkinter.END)
+        self.textbox_r.insert(0.0, result)
+        self.set_feedback("Строка успешно преобразована")
+
+    def set_feedback(self, text: str) -> None:
+        self.feedback_window.delete(0.0, customtkinter.END)
+        self.feedback_window.insert(0.0, text)
 
     def copy_result_btn_callback(self):
-        ...
+        text = self.textbox_r.get(0.0, customtkinter.END)
+        pyperclip.copy(text)
+        self.set_feedback("Результат скопирован")
 
     def clear_l_text_box_callback(self):
-        ...
+        self.textbox_l.delete(0.0, customtkinter.END)
 
     def clear_m_text_box_callback(self):
-        ...
+        self.textbox_m.delete(0.0, customtkinter.END)
 
     def clear_r_text_box_callback(self):
-        ...
+        self.textbox_r.delete(0.0, customtkinter.END)
 
 
 class TableState(State):
@@ -405,6 +445,14 @@ class TableState(State):
     def set_state(self): ...
 
     def remove_state(self): ...
+
+    def callback_start_btn(self) -> None:
+        table_path = ""
+        example_dict = {}
+        make_json_from_table(table_path=table_path, example_dict=example_dict)
+
+    def feedback(self, string: str) -> None:
+        print(string)
 
 
 class SubSettingsGeneralState(State):
