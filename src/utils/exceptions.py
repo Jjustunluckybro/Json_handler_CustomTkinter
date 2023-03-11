@@ -8,3 +8,7 @@ class ConvertStrToDictException(TypeError):
 
 class UnexpectedErrorMessage(ValueError):
     ...
+
+
+class NoSupportFileExtension(ValueError):
+    ...

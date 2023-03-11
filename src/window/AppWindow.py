@@ -74,10 +74,17 @@ class AppWindow(customtkinter.CTk):
         if mod == "Темная тема":
             customtkinter.set_appearance_mode("dark")
             self.logger.debug("Set appearance mod: 'dark'")
-            self.window_settings_handler.set_new_settings(APPEARANCE_MOD='dark')
+            self.window_settings_handler.set_new_settings(themes={
+                "appearance_mode": "dark",
+                "color_theme": "blue"
+            })
         elif mod == "Светлая тема":
             customtkinter.set_appearance_mode("light")
             self.logger.debug("Set appearance mod: 'light'")
-            self.window_settings_handler.set_new_settings(APPEARANCE_MOD='light')
-        else:
-            raise Exception  # TODO Custom exception
+            self.window_settings_handler.set_new_settings(themes={
+              "appearance_mode": "light",
+              "color_theme": "blue"
+            })
+        self.window_settings_handler.set_new_settings()
+
+

@@ -63,8 +63,8 @@ class WindowSettingsHandler(SettingsHandler):
         self._write_to_json()
 
     def get_current_settings(self) -> WindowSettingsModel:
-        answer = self._data.copy()
-        return answer
+        self._reed_json()
+        return self._data.copy()
 
 
 class FillerSettingsHandler(SettingsHandler):

@@ -1,11 +1,10 @@
-from logging import getLogger
 from pandas import read_excel
-from src.utils.utils import correct_dict_to_export, fix_dict_values_type
 
-logger = getLogger("app.handlers.table")
+from src.utils.exceptions import ConvertStrToDictException, NoSupportFileExtension
+from src.utils.utils import correct_dict_to_export, fix_dict_values_type, convert_string_to_dict
 
 
-def make_json_from_table(table_path: str, example_dict: dict) -> str:
+def make_json_from_table(table_path: str, example_dict: dict | str) -> str:
     """
 
     :param table_path:
@@ -13,18 +12,27 @@ def make_json_from_table(table_path: str, example_dict: dict) -> str:
     :return: JSON in string datetype
     """
     result_data = {}
-    available_extensions = (".xlsx", "xlsx", "xlsm", "xlsb", "odf", "ods", "odt")
+    available_extensions = (".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")
+    table_path = table_path.strip()
+
+    if isinstance(example_dict, str):
+        try:
+            example_dict = convert_string_to_dict(example_dict)
+        except ConvertStrToDictException as err:
+            raise err
 
     if 1 in [*map(lambda x: table_path.endswith(x), available_extensions)]:
-        data = read_excel(open(table_path, "rb")).to_dict()
+        try:
+            data = read_excel(open(table_path, "rb")).to_dict()
+        except FileNotFoundError as err:
+            raise FileNotFoundError(table_path)
     else:
-        raise ValueError("No support extension")
+        raise NoSupportFileExtension(f"Available extensions: {available_extensions}")
 
     try:
         variable_names: dict = data['variable_name']
         variable_values: dict = data['variable_value']
     except KeyError as err:
-        logger.debug(f"Wrong structure, {data}")
         raise err
 
     for k in variable_names:
