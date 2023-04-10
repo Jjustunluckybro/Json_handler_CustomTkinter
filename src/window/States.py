@@ -939,12 +939,12 @@ class SubFillerMonoState(State):
         self.product_type_box = CustomLabelCombobox(master=self.root_frame,
                                                     label_text="         PRODUCT_TYPE:       ",
                                                     combobox_default_value="Common",
-                                                    combobox_values=["Common", "Kvk", "Kbk"]
+                                                    combobox_values=["", "Common", "Kvk", "Kbk"]
                                                     )
         self.communication_type_box = CustomLabelCombobox(master=self.root_frame,
                                                           label_text="COMMUNICATION_TYPE:",
                                                           combobox_default_value="Call",
-                                                          combobox_values=["Call", "Chat"],
+                                                          combobox_values=["", "Call", "Chat"],
                                                           )
 
         presets_names = self.settings_handler.get_all_presets_names()

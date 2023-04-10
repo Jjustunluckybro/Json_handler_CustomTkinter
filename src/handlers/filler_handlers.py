@@ -80,33 +80,33 @@ def apply_settings(dict_to_valid: dict, settings: MonoSettingsFromUIModel | Doub
     if isinstance(settings, MonoSettingsFromUIModel):
         # logger.debug("Applying to mono")
         value_from_settings = {
-            "PRODUCT_TYPE": settings.product_type,
-            "PRIMARY_PRODUCT_TYPE": settings.product_type,
-            "PRIMARY_ACCOUNT_PRODUCT_TYPE": settings.product_type,
-            "CONTACT_ID": settings.contact_id,
-            "ACCOUNT_NUMBER": settings.account_number,
-            "PRIMARY_ACCOUNT_NUMBER": settings.account_number,
-            "CONTRACT_NUMBER": settings.contract_number,
-            "PRIMARY_CONTRACT_NUMBER": settings.contract_number,
-            "COMMUNICATION_TYPE": settings.communication_type,
+            "PRODUCT_TYPE": settings.product_type.strip(),
+            "PRIMARY_PRODUCT_TYPE": settings.product_type.strip(),
+            "PRIMARY_ACCOUNT_PRODUCT_TYPE": settings.product_type.strip(),
+            "CONTACT_ID": settings.contact_id.strip(),
+            "ACCOUNT_NUMBER": settings.account_number.strip(),
+            "PRIMARY_ACCOUNT_NUMBER": settings.account_number.strip(),
+            "CONTRACT_NUMBER": settings.contract_number.strip(),
+            "PRIMARY_CONTRACT_NUMBER": settings.contract_number.strip(),
+            "COMMUNICATION_TYPE": settings.communication_type.strip()
         }
         dates_value_from_settings = {
-            "DATE1": settings.dates.date_1,
-            "DATE_1": settings.dates.date_1,
-            "PRIMARY_ACCOUNT_DATE1": settings.dates.date_1,
-            "PRIMARY_ACCOUNT_DATE_1": settings.dates.date_1,
-            "DATE2": settings.dates.date_2,
-            "DATE_2": settings.dates.date_2,
-            "PRIMARY_ACCOUNT_DATE2": settings.dates.date_2,
-            "PRIMARY_ACCOUNT_DATE_2": settings.dates.date_2,
-            "DATE3": settings.dates.date_3,
-            "DATE_3": settings.dates.date_3,
-            "PRIMARY_ACCOUNT_DATE3": settings.dates.date_3,
-            "PRIMARY_ACCOUNT_DATE_3": settings.dates.date_3,
-            "STD": settings.dates.std,
-            "PRIMARY_ACCOUNT_STD": settings.dates.std,
-            "NEXT_STD": settings.dates.next_std,
-            "PRIMARY_ACCOUNT_NEXT_STD": settings.dates.next_std
+            "DATE1": settings.dates.date_1.strip(),
+            "DATE_1": settings.dates.date_1.strip(),
+            "PRIMARY_ACCOUNT_DATE1": settings.dates.date_1.strip(),
+            "PRIMARY_ACCOUNT_DATE_1": settings.dates.date_1.strip(),
+            "DATE2": settings.dates.date_2.strip(),
+            "DATE_2": settings.dates.date_2.strip(),
+            "PRIMARY_ACCOUNT_DATE2": settings.dates.date_2.strip(),
+            "PRIMARY_ACCOUNT_DATE_2": settings.dates.date_2.strip(),
+            "DATE3": settings.dates.date_3.strip(),
+            "DATE_3": settings.dates.date_3.strip(),
+            "PRIMARY_ACCOUNT_DATE3": settings.dates.date_3.strip(),
+            "PRIMARY_ACCOUNT_DATE_3": settings.dates.date_3.strip(),
+            "STD": settings.dates.std.strip(),
+            "PRIMARY_ACCOUNT_STD": settings.dates.std.strip(),
+            "NEXT_STD": settings.dates.next_std.strip(),
+            "PRIMARY_ACCOUNT_NEXT_STD": settings.dates.next_std.strip()
         }
     # For Double
     else:
@@ -116,7 +116,7 @@ def apply_settings(dict_to_valid: dict, settings: MonoSettingsFromUIModel | Doub
     result_dict = {}
     for key, value in dict_to_valid.items():
 
-        if (key in value_from_settings) and (value_from_settings[key] != "" or value_from_settings[key] != "\n"):
+        if (key in value_from_settings) and (value_from_settings[key] != ""):
             result_dict[key] = value_from_settings.get(key)
             continue
 

@@ -18,12 +18,12 @@
         "communication_type": "Call"
       },
       {
-        "name": "Мой пресет",
-        "contact_id": "99999999999",
-        "account_number": "123456789",
-        "contract_number": "00000000",
-        "product_type": "Kbk",
-        "communication_type": "Chat"
+        "name": "",
+        "contact_id": "",
+        "account_number": "",
+        "contract_number": "",
+        "product_type": "",
+        "communication_type": ""
       }
     ],
     "dates": {

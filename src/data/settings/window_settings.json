@@ -1,9 +1,9 @@
 {
   "title": "JSON Handler",
-  "window_geometry": "1000x800",
+  "window_geometry": "1000x750",
   "minsize_geometry": [
-    100,
-    100
+    600,
+    500
   ],
   "themes": {
     "appearance_mode": "dark",

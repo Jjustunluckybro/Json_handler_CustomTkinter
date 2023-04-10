@@ -17,7 +17,7 @@ def init_logger(name: str, is_logger_level_debug: bool = True) -> logging.Logger
     sh.setFormatter(logging.Formatter(LOGGER_FORMAT))
     sh.setLevel(logging.DEBUG)
     # File logger
-    fh = handlers.RotatingFileHandler(filename=LOG_FILE_PATH, maxBytes=3600, backupCount=1)
+    fh = handlers.RotatingFileHandler(filename=LOG_FILE_PATH, maxBytes=1000000, backupCount=1)
     fh.setFormatter(logging.Formatter(LOGGER_FORMAT))
     fh.setLevel(logging.INFO)
 
