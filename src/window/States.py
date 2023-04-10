@@ -1095,9 +1095,10 @@ class SubFillerMonoState(State):
         try:
             self.settings_handler.delete_preset_by_name(preset_name_to_del)
             self.settings_preset_box.del_value(preset_name_to_del)
-            self.master_state.set_feedback(f"Delete preset with name: '{preset_name_to_del}'")
+            self.master_state.set_feedback(f"Пресет '{preset_name_to_del}' удален")
         except PresetException as err:
             self.master_state.set_feedback(str(err))
+            
 
     def callback_calculate_datas(self):
         """Calculates dates based on settings"""
